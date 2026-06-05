@@ -10,48 +10,52 @@ jobs:
     name: PR Title
     runs-on: ubuntu-latest
     steps:
-      - name: Check title format
+      - name: Validate title length
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          # Title must be non-empty and at least 10 chars
-          if [ ${#PR_TITLE} -lt 10 ]; then
-            echo "::error::PR title is too short (min 10 characters): '$PR_TITLE'"
+          if [ "${#PR_TITLE}" -lt 10 ]; then
+            echo "::error::PR title too short (min 10 chars): '$PR_TITLE'"
             exit 1
           fi
           echo "PR title OK: $PR_TITLE"
 
   size:
-    name: PR Size
+    name: PR Size Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Count changed lines
+      - name: Warn on large PRs
         run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
-          LINES=$(git diff --stat "$BASE" "$HEAD" | tail -1 | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
-          echo "Changed lines: $LINES"
-          if [ "$LINES" -gt 3000 ]; then
-            echo "::warning::This PR is very large (${LINES} insertions). Consider splitting into smaller PRs."
-          fi
+          LINES=$(git diff --stat \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            | tail -1 | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+          echo "Insertions: $LINES"
+          [ "$LINES" -gt 3000 ] \
+            && echo "::warning::Large PR (${LINES} insertions). Consider splitting." \
+            || echo "PR size OK."
 
-  swift-build-check:
+  swift-build:
     name: Swift Build Check
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document
 
       - name: Cache SPM packages
         uses: actions/cache@v4
         with:
-          path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          path: ~/Library/Developer/Xcode/DerivedData/ClonedPackages
           key: spm-${{ runner.os }}-${{ hashFiles('VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
@@ -75,23 +79,26 @@ jobs:
           WHISPER="$DEPS/whisper.cpp"
           mkdir -p "$DEPS"
           [ -d "$WHISPER" ] || git clone https://github.com/ggerganov/whisper.cpp.git "$WHISPER"
-          (cd "$WHISPER" && git pull)
+          (cd "$WHISPER" && git pull --ff-only)
           cd "$WHISPER" && ./build-xcframework.sh
 
       - name: Resolve packages
         run: |
           xcodebuild -resolvePackageDependencies \
             -project VoiceInk.xcodeproj \
-            -scheme VoiceInk
+            -scheme VoiceInk \
+            -clonedSourcePackagesDirPath "$HOME/Library/Developer/Xcode/DerivedData/ClonedPackages"
 
-      - name: Build (PR validation)
+      - name: Build
         run: |
+          set -o pipefail
           xcodebuild \
             -project VoiceInk.xcodeproj \
             -scheme VoiceInk \
             -configuration Debug \
             -xcconfig LocalBuild.xcconfig \
             -derivedDataPath .ci-build \
+            -clonedSourcePackagesDirPath "$HOME/Library/Developer/Xcode/DerivedData/ClonedPackages" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=YES \
@@ -99,6 +106,6 @@ jobs:
             CODE_SIGN_ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements" \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
             FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
-            build | xcpretty --color || true
+            build 2>&1 | xcpretty
           APP=$(find .ci-build -name 'VoiceInk.app' -type d | head -1)
           [ -n "$APP" ] || { echo "::error::Build failed — VoiceInk.app not produced"; exit 1; }
