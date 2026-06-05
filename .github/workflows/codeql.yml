@@ -1,0 +1,84 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly scan every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze Swift
+    runs-on: macos-15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          queries: security-extended
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-codeql-${{ runner.os }}-${{ hashFiles('VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-codeql-${{ runner.os }}-
+
+      - name: Fetch whisper.cpp HEAD commit
+        id: whisper_rev
+        run: |
+          REV=$(git ls-remote https://github.com/ggerganov/whisper.cpp.git HEAD | cut -f1)
+          echo "rev=$REV" >> "$GITHUB_OUTPUT"
+
+      - name: Cache whisper.xcframework
+        uses: actions/cache@v4
+        with:
+          path: ~/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework
+          key: whisper-xcframework-${{ runner.os }}-${{ steps.whisper_rev.outputs.rev }}
+          restore-keys: whisper-xcframework-${{ runner.os }}-
+
+      - name: Build whisper.xcframework
+        if: steps.whisper_cache.outputs.cache-hit != 'true'
+        run: |
+          DEPS="$HOME/VoiceInk-Dependencies"
+          WHISPER="$DEPS/whisper.cpp"
+          mkdir -p "$DEPS"
+          [ -d "$WHISPER" ] || git clone https://github.com/ggerganov/whisper.cpp.git "$WHISPER"
+          (cd "$WHISPER" && git pull)
+          cd "$WHISPER" && ./build-xcframework.sh
+
+      - name: Build for CodeQL
+        run: |
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Debug \
+            -xcconfig LocalBuild.xcconfig \
+            -derivedDataPath .codeql-build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:swift"

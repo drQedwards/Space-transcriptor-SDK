@@ -1,0 +1,104 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  title:
+    name: PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Title must be non-empty and at least 10 chars
+          if [ ${#PR_TITLE} -lt 10 ]; then
+            echo "::error::PR title is too short (min 10 characters): '$PR_TITLE'"
+            exit 1
+          fi
+          echo "PR title OK: $PR_TITLE"
+
+  size:
+    name: PR Size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count changed lines
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          LINES=$(git diff --stat "$BASE" "$HEAD" | tail -1 | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+          echo "Changed lines: $LINES"
+          if [ "$LINES" -gt 3000 ]; then
+            echo "::warning::This PR is very large (${LINES} insertions). Consider splitting into smaller PRs."
+          fi
+
+  swift-build-check:
+    name: Swift Build Check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Fetch whisper.cpp HEAD commit
+        id: whisper_rev
+        run: |
+          REV=$(git ls-remote https://github.com/ggerganov/whisper.cpp.git HEAD | cut -f1)
+          echo "rev=$REV" >> "$GITHUB_OUTPUT"
+
+      - name: Cache whisper.xcframework
+        uses: actions/cache@v4
+        with:
+          path: ~/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework
+          key: whisper-xcframework-${{ runner.os }}-${{ steps.whisper_rev.outputs.rev }}
+          restore-keys: whisper-xcframework-${{ runner.os }}-
+
+      - name: Build whisper.xcframework
+        if: steps.whisper_cache.outputs.cache-hit != 'true'
+        run: |
+          DEPS="$HOME/VoiceInk-Dependencies"
+          WHISPER="$DEPS/whisper.cpp"
+          mkdir -p "$DEPS"
+          [ -d "$WHISPER" ] || git clone https://github.com/ggerganov/whisper.cpp.git "$WHISPER"
+          (cd "$WHISPER" && git pull)
+          cd "$WHISPER" && ./build-xcframework.sh
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk
+
+      - name: Build (PR validation)
+        run: |
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Debug \
+            -xcconfig LocalBuild.xcconfig \
+            -derivedDataPath .ci-build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            build | xcpretty --color || true
+          APP=$(find .ci-build -name 'VoiceInk.app' -type d | head -1)
+          [ -n "$APP" ] || { echo "::error::Build failed — VoiceInk.app not produced"; exit 1; }

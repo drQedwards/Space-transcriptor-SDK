@@ -1,0 +1,223 @@
+name: Release
+
+# Triggers on version tags (v1.80, Farcaster_spaces, etc.)
+on:
+  push:
+    tags:
+      - "v*"
+      - "Farcaster_*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build Release DMG
+    runs-on: macos-15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Strip leading 'v' if present; keep Farcaster_* as-is
+          VERSION="${TAG#v}"
+          # Build number: count all tags
+          BUILD=$(git tag | wc -l | tr -d ' ')
+          echo "version=$VERSION"      >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD"   >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"              >> "$GITHUB_OUTPUT"
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Fetch whisper.cpp HEAD commit
+        id: whisper_rev
+        run: |
+          REV=$(git ls-remote https://github.com/ggerganov/whisper.cpp.git HEAD | cut -f1)
+          echo "rev=$REV" >> "$GITHUB_OUTPUT"
+
+      - name: Cache whisper.xcframework
+        id: whisper_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework
+          key: whisper-xcframework-${{ runner.os }}-${{ steps.whisper_rev.outputs.rev }}
+          restore-keys: whisper-xcframework-${{ runner.os }}-
+
+      - name: Build whisper.xcframework
+        if: steps.whisper_cache.outputs.cache-hit != 'true'
+        run: |
+          DEPS="$HOME/VoiceInk-Dependencies"
+          WHISPER="$DEPS/whisper.cpp"
+          mkdir -p "$DEPS"
+          [ -d "$WHISPER" ] || git clone https://github.com/ggerganov/whisper.cpp.git "$WHISPER"
+          (cd "$WHISPER" && git pull)
+          cd "$WHISPER" && ./build-xcframework.sh
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk
+
+      # ── Signed build (requires secrets) or ad-hoc fallback ────────────────
+      - name: Build Release (signed)
+        if: ${{ secrets.APPLE_TEAM_ID != '' }}
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          P12_BASE64: ${{ secrets.P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          # Import signing cert from secret
+          echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p ci-pass ci.keychain
+          security default-keychain -s ci.keychain
+          security unlock-keychain -p ci-pass ci.keychain
+          security import /tmp/cert.p12 -k ci.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci-pass ci.keychain
+
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Release \
+            -derivedDataPath .release-build \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}" \
+            MARKETING_VERSION="${{ steps.version.outputs.version }}" \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            archive -archivePath VoiceInk.xcarchive
+
+      - name: Build Release (ad-hoc fallback)
+        if: ${{ secrets.APPLE_TEAM_ID == '' }}
+        run: |
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Release \
+            -xcconfig LocalBuild.xcconfig \
+            -derivedDataPath .release-build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}" \
+            MARKETING_VERSION="${{ steps.version.outputs.version }}" \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            build
+
+      # ── Notarize (optional, requires secrets) ─────────────────────────────
+      - name: Notarize
+        if: ${{ secrets.APPLE_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit VoiceInk.xcarchive \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple VoiceInk.xcarchive
+
+      # ── Package DMG ────────────────────────────────────────────────────────
+      - name: Package DMG
+        run: |
+          # Locate the built .app
+          if [ -d "VoiceInk.xcarchive" ]; then
+            APP=$(find VoiceInk.xcarchive -name 'VoiceInk.app' -type d | head -1)
+          else
+            APP=$(find .release-build -name 'VoiceInk.app' -type d | head -1)
+          fi
+          echo "Packaging: $APP"
+
+          # Create a simple DMG using hdiutil
+          DMG_DIR=$(mktemp -d)
+          cp -R "$APP" "$DMG_DIR/"
+          ln -s /Applications "$DMG_DIR/Applications"
+
+          hdiutil create \
+            -volname "VoiceInk ${{ steps.version.outputs.version }}" \
+            -srcfolder "$DMG_DIR" \
+            -ov \
+            -format UDZO \
+            VoiceInk.dmg
+
+          echo "DMG_SIZE=$(stat -f%z VoiceInk.dmg)" >> "$GITHUB_ENV"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceInk-${{ steps.version.outputs.version }}.dmg
+          path: VoiceInk.dmg
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: VoiceInk-${{ needs.build-release.outputs.version }}.dmg
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          cat <<EOF > release_notes.md
+          ## VoiceInk ${{ needs.build-release.outputs.version }}
+
+          ### What's New
+          - Closed Captioning overlay — real-time floating CC panel synced to your voice
+          - Jumbotron hero component — animated feature announcements
+          - Full CI/CD workflow suite
+
+          ### Installation
+          1. Download \`VoiceInk.dmg\` below
+          2. Open and drag VoiceInk to Applications
+          3. On first launch, right-click → Open if Gatekeeper prompts
+
+          ### Requirements
+          - macOS 14.4 or later
+
+          ---
+          _Tag: \`${TAG}\` · Build: ${{ needs.build-release.outputs.build_number }}_
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "VoiceInk ${{ needs.build-release.outputs.version }}"
+          body_path: release_notes.md
+          files: VoiceInk.dmg
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'Farcaster_') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
