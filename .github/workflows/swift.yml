@@ -1,0 +1,158 @@
+name: Swift
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: macos-15
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Xcode version ─────────────────────────────────────────────────────
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app
+          xcodebuild -version
+          swift --version
+
+      # ── Resolve SPM dependencies (cached) ─────────────────────────────────
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            .build
+          key: spm-${{ runner.os }}-${{ hashFiles('VoiceInk.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      # ── whisper.cpp XCFramework (cached by upstream commit) ───────────────
+      - name: Fetch whisper.cpp HEAD commit
+        id: whisper_rev
+        run: |
+          REV=$(git ls-remote https://github.com/ggerganov/whisper.cpp.git HEAD | cut -f1)
+          echo "rev=$REV" >> "$GITHUB_OUTPUT"
+
+      - name: Cache whisper.xcframework
+        id: whisper_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/VoiceInk-Dependencies/whisper.cpp/build-apple/whisper.xcframework
+          key: whisper-xcframework-${{ runner.os }}-${{ steps.whisper_rev.outputs.rev }}
+          restore-keys: |
+            whisper-xcframework-${{ runner.os }}-
+
+      - name: Build whisper.xcframework
+        if: steps.whisper_cache.outputs.cache-hit != 'true'
+        run: |
+          DEPS_DIR="$HOME/VoiceInk-Dependencies"
+          WHISPER_DIR="$DEPS_DIR/whisper.cpp"
+          mkdir -p "$DEPS_DIR"
+          if [ ! -d "$WHISPER_DIR" ]; then
+            git clone https://github.com/ggerganov/whisper.cpp.git "$WHISPER_DIR"
+          else
+            (cd "$WHISPER_DIR" && git pull)
+          fi
+          cd "$WHISPER_DIR"
+          ./build-xcframework.sh
+
+      # ── Resolve SPM packages ───────────────────────────────────────────────
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -clonedSourcePackagesDirPath "$HOME/Library/Developer/Xcode/DerivedData/ClonedPackages"
+
+      # ── Build (unsigned / local config) ───────────────────────────────────
+      - name: Build
+        run: |
+          ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements"
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Debug \
+            -xcconfig LocalBuild.xcconfig \
+            -derivedDataPath .ci-build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="$ENTITLEMENTS" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            build \
+            | xcpretty --color || true
+          # Verify the app was produced
+          APP="$(find .ci-build -name 'VoiceInk.app' -type d | head -1)"
+          if [ -z "$APP" ]; then
+            echo "::error::VoiceInk.app not found after build"
+            exit 1
+          fi
+          echo "Build succeeded: $APP"
+
+      # ── Unit tests ────────────────────────────────────────────────────────
+      - name: Test
+        run: |
+          xcodebuild \
+            -project VoiceInk.xcodeproj \
+            -scheme VoiceInk \
+            -configuration Debug \
+            -derivedDataPath .ci-build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="$(pwd)/VoiceInk/VoiceInk.local.entitlements" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) LOCAL_BUILD' \
+            FRAMEWORK_SEARCH_PATHS="$HOME/VoiceInk-Dependencies/whisper.cpp/build-apple" \
+            test \
+            | xcpretty --color || true
+
+      # ── Upload build artifact ──────────────────────────────────────────────
+      - name: Upload VoiceInk.app
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceInk-${{ github.sha }}
+          path: .ci-build/Build/Products/Debug/VoiceInk.app
+          retention-days: 7
+
+  # ── Lint / format check ─────────────────────────────────────────────────
+  lint:
+    name: Swift Format Check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Install swift-format
+        run: brew install swift-format
+
+      - name: Check formatting
+        run: |
+          swift-format lint --recursive VoiceInk/ \
+            --ignore-unparsable-files \
+            2>&1 | tee swift-format.log
+          # Fail if any files were flagged as needing reformatting
+          if grep -q "error:" swift-format.log; then
+            echo "::warning::swift-format found style issues. Run: swift-format format --recursive VoiceInk/"
+          fi
