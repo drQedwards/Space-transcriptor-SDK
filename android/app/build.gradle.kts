@@ -56,8 +56,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.webkit)
-    implementation(libs.androidx.savedstate)
     implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.savedstate)
 
     debugImplementation(libs.androidx.ui.tooling)
 }
