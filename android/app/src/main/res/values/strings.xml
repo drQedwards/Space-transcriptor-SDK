@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Space Transcriptor</string>
+    <string name="channel_name">Captioning Overlay</string>
+    <string name="channel_description">Live closed captioning overlay for Space Transcriptor</string>
+    <string name="notification_title">Captioning Active</string>
+    <string name="notification_text">Space Transcriptor is displaying live captions</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_captioning">Captions</string>
+    <string name="nav_farcaster">Farcaster</string>
+    <string name="overlay_permission_rationale">Overlay permission is required to display live captions above other apps</string>
+    <string name="farcaster_miniapp_url">https://space-transcriptor.vercel.app</string>
+</resources>
