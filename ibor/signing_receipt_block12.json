@@ -1,0 +1,30 @@
+{
+  "ibor_version": "1.5",
+  "block": 12,
+  "genesis": 0,
+  "block_role": "sovereign seal \u2014 drq_sovereign@flamenet (Lux Orbis / Block 12)",
+  "computed_at": "2026-06-06T16:32:46.092918+00:00",
+  "signing_receipt": {
+    "algorithm": "SHA3-512",
+    "hash": "b6bf18455e8cd9062b3d56218e982e83cb2418cbdb48f73304c4976ba435b3c6b1bb16a0bf4ef7b220f74a04ad4aa4418247f4d03775bdc78ae74688f44ebabe",
+    "hash_length_chars": 128,
+    "source_file": "signing_manifest_block12.json",
+    "source_size_bytes": 2021,
+    "status": "SEALED \u2014 Block 12 sovereign seal"
+  },
+  "three_layer_proof": {
+    "layer1_block_hash_sha256": "cd220c1958e1827c0cff401544dbd569918aac5f8bc99f206e5b71adca558657",
+    "layer2_witness_root_sha256": "537e7bfa914b43127b7da7623bc61e34945eef66c7e5df5b3e51d677bc506f70",
+    "layer3_seal_hash_sha256": "7007e905ad22a6693a1bf20dc3be59d995a04e04ce011cb80415f450701ee2e2",
+    "previous_seal": "5fe3f396a901a449f0e36e8a65b0938ca0c3f50d81d70a102792be8f92bfaaa9383f19e0a9ee78e45ecc43413f567eecad58053ec9951d5880dfd5c3127809de"
+  },
+  "signer": {
+    "alias": "drq_sovereign@flamenet",
+    "node_uid": "sovereign_flame@FlameNet",
+    "gpg_fingerprint": "7D7302A39ECD884EE0D3099762DD52D2D43FB34C",
+    "signing_subkey": "1DDAAF00FD384FB342C1CFE26FF8C33F335F2EA8",
+    "algorithm": "EdDSA/ed25519"
+  },
+  "chain_status": "ACTIVE \u2014 Block 12 sealed. Chain continues from Genesis=0.",
+  "asc_file": "signing_manifest_block12.json.asc"
+}

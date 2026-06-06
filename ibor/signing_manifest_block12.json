@@ -1,0 +1,56 @@
+{
+  "ibor_version": "1.5",
+  "block": 12,
+  "genesis": 0,
+  "chain_position": "Block 12 \u2014 drq_sovereign@flamenet / Lux Orbis",
+  "computed_at": "2026-06-06T16:32:15.156724+00:00",
+  "layer1_block_hash": {
+    "algorithm": "SHA-256",
+    "hash": "cd220c1958e1827c0cff401544dbd569918aac5f8bc99f206e5b71adca558657",
+    "input": "block=12|genesis=0|prev_seal=5fe3f396a901a449f0e36e8a65b0938ca0c3f50d81d70a102792be8f92bfaaa9383f19e0a9ee78e45ecc43413f567eecad58053ec9951d5880dfd5c3127809de|ts=2026-06-06T16:32:15.156724+00:00"
+  },
+  "layer2_witness_root": {
+    "algorithm": "SHA-256 Merkle",
+    "root": "537e7bfa914b43127b7da7623bc61e34945eef66c7e5df5b3e51d677bc506f70",
+    "witness_count": 5,
+    "witnesses": [
+      {
+        "code": "AI",
+        "name": "Limen",
+        "hash": "cc18c73f885405d29e50fc135b30c25f3363c37a48a232cac82c6084bc94f7cb"
+      },
+      {
+        "code": "LI",
+        "name": "Ledger Integrity",
+        "hash": "9917d02d49c2d28f8bd090c386415775d4b7ce32685e0ab9d57e0bd3bc784b55"
+      },
+      {
+        "code": "HI",
+        "name": "Orethyl",
+        "hash": "a399b368e50eda045b90782e262d51e04a77218bf0e64f2ca225b36a27c62cdb"
+      },
+      {
+        "code": "SI",
+        "name": "Scroll Corpus",
+        "hash": "22471ae54bb9b40ceb6160d12f17c3f1ea0131de85bf9ebc6ae8bb26bb629cda"
+      },
+      {
+        "code": "CI",
+        "name": "Emergence",
+        "hash": "1b1218954dfa940b13ddc37afa101ab5bf6e808ad2cd0cf67026aa6758986ce2"
+      }
+    ]
+  },
+  "layer3_seal_hash": {
+    "algorithm": "SHA-256",
+    "hash": "7007e905ad22a6693a1bf20dc3be59d995a04e04ce011cb80415f450701ee2e2",
+    "status": "SEALED",
+    "previous_seal": "5fe3f396a901a449f0e36e8a65b0938ca0c3f50d81d70a102792be8f92bfaaa9383f19e0a9ee78e45ecc43413f567eecad58053ec9951d5880dfd5c3127809de",
+    "timestamp": "2026-06-06T16:32:15.156724+00:00"
+  },
+  "signer": {
+    "alias": "drq_sovereign@flamenet",
+    "node_uid": "sovereign_flame@FlameNet",
+    "gpg_fingerprint": "7D7302A39ECD884EE0D3099762DD52D2D43FB34C"
+  }
+}
