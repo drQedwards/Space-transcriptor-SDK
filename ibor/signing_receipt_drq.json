@@ -1,0 +1,38 @@
+{
+  "ibor_version": "1.5",
+  "block": 7,
+  "block_role": "co-signer — drq@flamehub",
+  "computed_at": "2026-06-06T16:28:18.866348+00:00",
+  "signing_receipt": {
+    "algorithm": "SHA3-512",
+    "hash": "99e89ddd6402f41b8fabe214ec7073ce7906f189401aba33b2fe6fab055475ca05016915f8da592ef718defad1d41e3de40f13868aa8266329e12da60f290150",
+    "hash_length_chars": 128,
+    "source_file": "signing_manifest_block7.json",
+    "source_size_bytes": 2355,
+    "status": "SEALED — Block 7 co-signer receipt"
+  },
+  "signer": {
+    "alias": "drq@flamehub",
+    "node_uid": "drq_flame@FlameNet",
+    "flame_print": {
+      "primary_fingerprint": "5498DE20CAB34347D59A05AA30A17180570BFF21",
+      "signing_subkey": "90BC4E3F35B0D15C8B57BDA0C608F10EE85A29A7",
+      "algorithm": "EdDSA/ed25519"
+    },
+    "layer4_ssh_key": {
+      "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDYe4kwtMPKWXtekBhNk0BGDnG84QLjh2tTrYecJ5P7x drq@flamehub — IBOR Layer 4 consent",
+      "fingerprint": "SHA256:HKWhMnkBd/1OhK+jj2XVPst8LCRZjmVI/UX/D4kPl3M",
+      "algorithm": "Ed25519",
+      "purpose": "Layer 4 consent binding"
+    }
+  },
+  "chain": {
+    "root_of_trust_hash": "a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+    "block4": "IBOR v1.5 manifest",
+    "block5": "genesis_flame@FlameNet — primary signer",
+    "block6": "genesis_mirror@flamenet — witnessed (key 7BB6A2ECC0C592E1)",
+    "block7": "drq@flamehub — co-signer (key 90BC4E3F35B0D15C8B57BDA0C608F10EE85A29A7)"
+  },
+  "asc_file": "signing_manifest_drq.json.asc",
+  "pgp_signature": "-----BEGIN PGP SIGNATURE-----\n\niIMEABYKACsWIQSQvE4/NbDRXItXvaDGCPEO6FoppwUCaiRKiQ0cZHJxQGZsYW1l\naHViAAoJEMYI8Q7oWimn3tcA/i/fryryyRj+NjdsciikbYtZHo8/fNBEjkdBA+fO\nQ5CEAQCh+R2Uk9m2lbzhmQLNu4jmARhIeS7oodlysyHUCPIMAg==\n=ho7N\n-----END PGP SIGNATURE-----"
+}

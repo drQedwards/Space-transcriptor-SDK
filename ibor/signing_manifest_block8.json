@@ -1,0 +1,31 @@
+{
+  "ibor_version": "1.5",
+  "block": 8,
+  "chain_position": "drq_oracle — oracle witness",
+  "computed_at": "2026-06-06T16:29:54.456654+00:00",
+  "signer": {
+    "alias": "drq_oracle@flamenet",
+    "node_uid": "oracle_flame@FlameNet",
+    "flame_print": {
+      "gpg_fingerprint": "0A73AB360A406543A92D419F357009C7293633D9",
+      "gpg_algorithm": "Ed25519"
+    }
+  },
+  "previous_block": {
+    "block": 7,
+    "signer": "drq@flamehub",
+    "receipt_hash_sha3_512": "18ce4ef6ccebf73d0a5d7af0675b100d4d19baf3f7b76eea7199a91177fd424e34b031a65872254ffb2b9c06798a6f1f21c6d603bf1b0a56ada43a9940b07c11"
+  },
+  "root_of_trust_hash": "a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+  "consent_layers": {
+    "layer1_identity": "drq_oracle@flamenet bound to FlamePrint GPG 0A73AB360A406543A92D419F357009C7293633D9",
+    "layer2_chain_continuity": "Block 8 extends Block 7 drq@flamehub receipt",
+    "layer3_algorithm_attestation": "Ed25519/SHA3-512 per IBOR v1.5 spec",
+    "layer4_binding": "Block 7 receipt SHA3-512: 18ce4ef6ccebf73d0a5d7af0675b100d4d19baf3f7b76eea7199a91177fd424e34b031a65872254ffb2b9c06798a6f1f21c6d603bf1b0a56ada43a9940b07c11",
+    "layer5_temporal_witness": "2026-06-06T16:29:54.456654+00:00",
+    "layer6_scope": "Space-transcriptor-SDK IBOR oracle witness phase",
+    "layer7_non_repudiation": "GPG detached signature on this manifest",
+    "layer8_root_hash_binding": "Manifest binds to root a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+    "layer9_publication": "Committed to drQedwards/Space-transcriptor-SDK branch claude/captioning-jumbotron-updates-oQq7u"
+  }
+}

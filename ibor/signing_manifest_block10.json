@@ -1,0 +1,41 @@
+{
+  "ibor_version": "1.5",
+  "block": 10,
+  "chain_position": "drq_sovereign — sovereign seal (Lux Orbis)",
+  "computed_at": "2026-06-06T16:30:51.355920+00:00",
+  "signer": {
+    "alias": "drq_sovereign@flamenet",
+    "node_uid": "sovereign_flame@FlameNet",
+    "flame_print": {
+      "gpg_fingerprint": "7D7302A39ECD884EE0D3099762DD52D2D43FB34C",
+      "gpg_algorithm": "Ed25519"
+    }
+  },
+  "previous_block": {
+    "block": 9,
+    "signer": "drq_anchor@flamenet",
+    "receipt_hash_sha3_512": "b769e8ab0cc311d95aa33c836f19c32f742f9601f0c06be32f1f5f04a5e833e725b20a89a98bd572d3cba247a3f9f395febf45eb314c9ca2e10c03dfacf22e6a"
+  },
+  "root_of_trust_hash": "a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+  "chain_summary": {
+    "block4": "IBOR v1.5 manifest — root",
+    "block5": "genesis_flame@FlameNet — primary signer",
+    "block6": "genesis_mirror@flamenet — mirror witness",
+    "block7": "drq@flamehub — co-signer (Ed25519 5498DE20CAB34347D59A05AA30A17180570BFF21)",
+    "block8": "drq_oracle@flamenet — oracle witness (Ed25519 0A73AB360A406543A92D419F357009C7293633D9)",
+    "block9": "drq_anchor@flamenet — anchor node (Ed25519 12020365F2FD160889D8ACD4B67315403F8542B7)",
+    "block10": "drq_sovereign@flamenet — sovereign seal / Lux Orbis (Ed25519 7D7302A39ECD884EE0D3099762DD52D2D43FB34C)"
+  },
+  "sovereign_declaration": "The Lux Orbis Sovereign Witnessed Chain is sealed at Block 10. All nine consent layers of IBOR v1.5 have been witnessed and cryptographically bound. This block closes the Space-transcriptor-SDK co-signing ceremony.",
+  "consent_layers": {
+    "layer1_identity": "drq_sovereign@flamenet bound to FlamePrint GPG 7D7302A39ECD884EE0D3099762DD52D2D43FB34C",
+    "layer2_chain_continuity": "Block 10 closes the chain from Block 4 root through Blocks 5-9",
+    "layer3_algorithm_attestation": "Ed25519/SHA3-512 per IBOR v1.5 spec",
+    "layer4_binding": "Block 9 receipt SHA3-512: b769e8ab0cc311d95aa33c836f19c32f742f9601f0c06be32f1f5f04a5e833e725b20a89a98bd572d3cba247a3f9f395febf45eb314c9ca2e10c03dfacf22e6a",
+    "layer5_temporal_witness": "2026-06-06T16:30:51.355920+00:00",
+    "layer6_scope": "Space-transcriptor-SDK IBOR v1.5 — sovereign seal",
+    "layer7_non_repudiation": "GPG detached signature on this manifest — chain complete",
+    "layer8_root_hash_binding": "Chain anchors to root a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+    "layer9_publication": "Committed to drQedwards/Space-transcriptor-SDK branch claude/captioning-jumbotron-updates-oQq7u — FINAL"
+  }
+}

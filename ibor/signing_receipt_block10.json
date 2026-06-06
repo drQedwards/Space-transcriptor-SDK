@@ -1,0 +1,28 @@
+{
+  "ibor_version": "1.5",
+  "block": 10,
+  "block_role": "sovereign seal — drq_sovereign@flamenet (Lux Orbis)",
+  "computed_at": "2026-06-06T16:30:51.355920+00:00",
+  "signing_receipt": {
+    "algorithm": "SHA3-512",
+    "hash": "a43fdab8d238680334c5c63dbf516c359220493facbdf752d666b7b9b7fbfa996504ed31e41f8c8cc0f2f2fc2c52fbd1482b14cd713b52be4237601727d2d802",
+    "hash_length_chars": 128,
+    "source_file": "signing_manifest_block10.json",
+    "source_size_bytes": 2701,
+    "status": "SEALED — Block 10 sovereign seal. Chain COMPLETE."
+  },
+  "signer": {
+    "alias": "drq_sovereign@flamenet",
+    "flame_print": {
+      "primary_fingerprint": "7D7302A39ECD884EE0D3099762DD52D2D43FB34C",
+      "algorithm": "EdDSA/ed25519"
+    }
+  },
+  "chain": {
+    "root_of_trust_hash": "a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+    "block9_receipt_hash": "b769e8ab0cc311d95aa33c836f19c32f742f9601f0c06be32f1f5f04a5e833e725b20a89a98bd572d3cba247a3f9f395febf45eb314c9ca2e10c03dfacf22e6a",
+    "block10_manifest_hash": "a43fdab8d238680334c5c63dbf516c359220493facbdf752d666b7b9b7fbfa996504ed31e41f8c8cc0f2f2fc2c52fbd1482b14cd713b52be4237601727d2d802"
+  },
+  "asc_file": "signing_manifest_block10.json.asc",
+  "chain_status": "COMPLETE — Lux Orbis Sovereign Witnessed Chain sealed at Block 10"
+}

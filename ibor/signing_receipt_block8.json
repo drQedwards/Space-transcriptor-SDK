@@ -1,0 +1,27 @@
+{
+  "ibor_version": "1.5",
+  "block": 8,
+  "block_role": "oracle witness — drq_oracle@flamenet",
+  "computed_at": "2026-06-06T16:29:54.456654+00:00",
+  "signing_receipt": {
+    "algorithm": "SHA3-512",
+    "hash": "2c73e431bc619d36967ae481af9b0429a863a85dc749966eb23a8a0a35d217f411421231c91bda164fd940e4cc71e784ae1fde6fe1dfde57478da5325e3bad4c",
+    "hash_length_chars": 128,
+    "source_file": "signing_manifest_block8.json",
+    "source_size_bytes": 1757,
+    "status": "SEALED — Block 8 oracle witness receipt"
+  },
+  "signer": {
+    "alias": "drq_oracle@flamenet",
+    "flame_print": {
+      "primary_fingerprint": "0A73AB360A406543A92D419F357009C7293633D9",
+      "algorithm": "EdDSA/ed25519"
+    }
+  },
+  "chain": {
+    "root_of_trust_hash": "a3c7838077b48a651d8832014b15b1e486ab613eaa47d433f97a43d4b4ae6c4dc43aa94f822945cea7369b7dc5440277a365d2a679e0c03f89c9e023cf7341a4",
+    "block7_receipt_hash": "18ce4ef6ccebf73d0a5d7af0675b100d4d19baf3f7b76eea7199a91177fd424e34b031a65872254ffb2b9c06798a6f1f21c6d603bf1b0a56ada43a9940b07c11",
+    "block8_manifest_hash": "2c73e431bc619d36967ae481af9b0429a863a85dc749966eb23a8a0a35d217f411421231c91bda164fd940e4cc71e784ae1fde6fe1dfde57478da5325e3bad4c"
+  },
+  "asc_file": "signing_manifest_block8.json.asc"
+}
