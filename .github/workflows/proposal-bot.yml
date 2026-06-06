@@ -1,0 +1,67 @@
+name: Purple DAO Proposal Bot
+
+on:
+  schedule:
+    # Run every hour at :05 past (avoids contention with other hourly jobs)
+    - cron: "5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (skip sending DCs)"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: write  # needed to commit state.json back to the repo
+
+jobs:
+  notify:
+    name: Check proposals & send DCs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use PAT so the state.json commit can push back
+          token: ${{ secrets.GH_PAT || github.token }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run bot
+        env:
+          BUILDER_SUBGRAPH_ETHEREUM_URL: "https://api.goldsky.com/api/public/project_clkk1ucdyf6ak38svcatie9tf/subgraphs/nouns-builder-ethereum-mainnet/stable/gn"
+          WARPCAST_BASE_URL: "https://api.warpcast.com"
+          WARPCAST_API_KEY: ${{ secrets.WARPCAST_API_KEY }}
+          # Watch proposals from your wallet — update to your proposer address
+          WATCH_PROPOSER: "0x09CbC0D92AABE6F53Ac7E84F0Ba0FbfD05eB80f2"
+          # Your FID — receives Direct Cast notifications
+          NOTIFY_FID: "2112173"
+          STATE_FILE: "bot/state.json"
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: pnpm start
+
+      - name: Commit updated state
+        run: |
+          git config user.name  "proposal-bot[bot]"
+          git config user.email "proposal-bot@users.noreply.github.com"
+          git add ../bot/state.json
+          git diff --cached --quiet && echo "No state changes" || \
+            git commit -m "chore(bot): update proposal state [skip ci]" && \
+            git push
